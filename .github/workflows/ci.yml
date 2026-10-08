@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  migraciones:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kairo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kairo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kairo_test
+    steps:
+      - uses: actions/checkout@v6
+      - name: Linter de SQL
+        run: |
+          if compgen -G "migrations/*.sql" > /dev/null; then
+            pipx run sqlfluff lint migrations --dialect postgres
+          fi
+      - name: Aplicar migraciones desde cero
+        run: |
+          shopt -s nullglob
+          for f in migrations/*.sql; do
+            echo "Aplicando $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Pruebas SQL
+        run: |
+          shopt -s nullglob globstar
+          for f in tests/**/*.sql; do
+            echo "Ejecutando $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
