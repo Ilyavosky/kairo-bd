@@ -27,3 +27,9 @@ Cada migracion queda registrada con el nombre del archivo sin extension
 | Fecha | Cambio |
 |---|---|
 | 2026-11-24 | `supabase/000` y migraciones 000-011 aplicadas; huellas identicas a la CI |
+| 2026-11-25 | 012 aplicada tras validar la suite de la API; huellas identicas y linter de seguridad sin hallazgos |
+
+## Seeds
+
+Despues de las migraciones, `seeds/catalog/*.sql` en orden. Son idempotentes. Los seeds no se
+registran en el historial de migraciones.
