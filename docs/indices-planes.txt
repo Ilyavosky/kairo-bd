@@ -1,0 +1,584 @@
+############ CON INDICES
+=== 1. Agenda proxima (GET /reportes/agenda, 14 dias, 50 filas)
+                                                                               QUERY PLAN                                                                               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=118.11..118.15 rows=18 width=145) (actual time=0.470..0.476 rows=14 loops=1)
+   Buffers: shared hit=61
+   ->  Sort  (cost=118.11..118.15 rows=18 width=145) (actual time=0.468..0.473 rows=14 loops=1)
+         Sort Key: "*SELECT* 1".cuando, "*SELECT* 1".tipo, "*SELECT* 1".id
+         Sort Method: quicksort  Memory: 26kB
+         Buffers: shared hit=61
+         ->  Append  (cost=12.98..117.73 rows=18 width=145) (actual time=0.176..0.420 rows=14 loops=1)
+               Buffers: shared hit=52
+               ->  Subquery Scan on "*SELECT* 1"  (cost=12.98..55.68 rows=6 width=116) (actual time=0.176..0.222 rows=6 loops=1)
+                     Buffers: shared hit=20
+                     ->  Nested Loop Left Join  (cost=12.98..55.62 rows=6 width=164) (actual time=0.175..0.219 rows=6 loops=1)
+                           Join Filter: (a.materia_id = m.id)
+                           Rows Removed by Join Filter: 15
+                           Buffers: shared hit=20
+                           ->  Hash Join  (cost=8.41..41.58 rows=6 width=72) (actual time=0.122..0.151 rows=6 loops=1)
+                                 Hash Cond: (a.categoria_id = c.id)
+                                 Buffers: shared hit=12
+                                 ->  Bitmap Heap Scan on actividad a  (cost=4.66..37.80 rows=6 width=80) (actual time=0.092..0.117 rows=6 loops=1)
+                                       Recheck Cond: ((usuario_id = app_usuario_id()) AND (vence_en >= now()) AND (vence_en <= (now() + '14 days'::interval)))
+                                       Filter: (estado = ANY ('{pendiente,en_progreso}'::text[]))
+                                       Rows Removed by Filter: 3
+                                       Heap Blocks: exact=9
+                                       Buffers: shared hit=11
+                                       ->  Bitmap Index Scan on actividad_usuario_vence_idx  (cost=0.00..4.66 rows=9 width=0) (actual time=0.076..0.076 rows=9 loops=1)
+                                             Index Cond: ((usuario_id = app_usuario_id()) AND (vence_en >= now()) AND (vence_en <= (now() + '14 days'::interval)))
+                                             Buffers: shared hit=2
+                                 ->  Hash  (cost=3.62..3.62 rows=10 width=24) (actual time=0.014..0.015 rows=10 loops=1)
+                                       Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                       Buffers: shared hit=1
+                                       ->  Seq Scan on categoria_actividad c  (cost=0.00..3.62 rows=10 width=24) (actual time=0.006..0.007 rows=10 loops=1)
+                                             Filter: ((usuario_id IS NULL) OR (usuario_id = app_usuario_id()))
+                                             Buffers: shared hit=1
+                           ->  Materialize  (cost=4.57..13.50 rows=6 width=26) (actual time=0.008..0.010 rows=4 loops=6)
+                                 Buffers: shared hit=8
+                                 ->  Bitmap Heap Scan on materia m  (cost=4.57..13.47 rows=6 width=26) (actual time=0.042..0.054 rows=6 loops=1)
+                                       Recheck Cond: (usuario_id = app_usuario_id())
+                                       Heap Blocks: exact=6
+                                       Buffers: shared hit=8
+                                       ->  Bitmap Index Scan on materia_nombre_unico  (cost=0.00..4.57 rows=6 width=0) (actual time=0.038..0.038 rows=6 loops=1)
+                                             Index Cond: (usuario_id = app_usuario_id())
+                                             Buffers: shared hit=2
+               ->  Subquery Scan on "*SELECT* 2"  (cost=18.30..61.97 rows=12 width=159) (actual time=0.169..0.195 rows=8 loops=1)
+                     Buffers: shared hit=32
+                     ->  Hash Left Join  (cost=18.30..61.85 rows=12 width=207) (actual time=0.169..0.193 rows=8 loops=1)
+                           Hash Cond: (e.materia_id = m_1.id)
+                           Buffers: shared hit=32
+                           ->  Bitmap Heap Scan on evento_calendario e  (cost=4.76..48.27 rows=12 width=49) (actual time=0.104..0.126 rows=8 loops=1)
+                                 Recheck Cond: ((usuario_id = app_usuario_id()) AND (inicio <= (now() + '14 days'::interval)))
+                                 Filter: (fin >= now())
+                                 Rows Removed by Filter: 14
+                                 Heap Blocks: exact=22
+                                 Buffers: shared hit=24
+                                 ->  Bitmap Index Scan on evento_usuario_inicio_idx  (cost=0.00..4.75 rows=22 width=0) (actual time=0.054..0.055 rows=22 loops=1)
+                                       Index Cond: ((usuario_id = app_usuario_id()) AND (inicio <= (now() + '14 days'::interval)))
+                                       Buffers: shared hit=2
+                           ->  Hash  (cost=13.47..13.47 rows=6 width=26) (actual time=0.051..0.051 rows=6 loops=1)
+                                 Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                 Buffers: shared hit=8
+                                 ->  Bitmap Heap Scan on materia m_1  (cost=4.57..13.47 rows=6 width=26) (actual time=0.039..0.043 rows=6 loops=1)
+                                       Recheck Cond: (usuario_id = app_usuario_id())
+                                       Heap Blocks: exact=6
+                                       Buffers: shared hit=8
+                                       ->  Bitmap Index Scan on materia_nombre_unico  (cost=0.00..4.57 rows=6 width=0) (actual time=0.038..0.038 rows=6 loops=1)
+                                             Index Cond: (usuario_id = app_usuario_id())
+                                             Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=359
+ Planning Time: 1.603 ms
+ Execution Time: 0.707 ms
+(69 rows)
+
+=== 2. Carga semanal por materia (GET /reportes/carga-semanal, 4 semanas atras y 4 adelante)
+                                                                                                                                                                               QUERY PLAN                                                                                                                                                                               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1354.48..1354.64 rows=67 width=70) (actual time=3.092..3.106 rows=42 loops=1)
+   Sort Key: v_carga_semanal_materia.semana_desde, v_carga_semanal_materia.materia, v_carga_semanal_materia.materia_id
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=630
+   InitPlan 1 (returns $0)
+     ->  Index Scan using usuario_pkey on usuario  (cost=0.39..8.41 rows=1 width=20) (actual time=0.045..0.046 rows=1 loops=1)
+           Index Cond: (id = app_usuario_id())
+           Buffers: shared hit=2
+   InitPlan 2 (returns $1)
+     ->  Index Scan using usuario_pkey on usuario usuario_1  (cost=0.39..8.41 rows=1 width=20) (actual time=0.041..0.042 rows=1 loops=1)
+           Index Cond: (id = app_usuario_id())
+           Buffers: shared hit=2
+   ->  Subquery Scan on v_carga_semanal_materia  (cost=1332.11..1335.63 rows=67 width=70) (actual time=3.012..3.068 rows=42 loops=1)
+         Buffers: shared hit=627
+         ->  GroupAggregate  (cost=1332.11..1334.96 rows=67 width=86) (actual time=3.010..3.060 rows=42 loops=1)
+               Group Key: "*SELECT* 1".usuario_id, "*SELECT* 1".semana_desde, "*SELECT* 1".materia_id, m.nombre
+               Buffers: shared hit=627
+               ->  Sort  (cost=1332.11..1332.28 rows=67 width=86) (actual time=2.993..3.005 rows=42 loops=1)
+                     Sort Key: "*SELECT* 1".usuario_id, "*SELECT* 1".semana_desde, "*SELECT* 1".materia_id, m.nombre
+                     Sort Method: quicksort  Memory: 28kB
+                     Buffers: shared hit=627
+                     ->  Nested Loop Left Join  (cost=10.52..1330.08 rows=67 width=86) (actual time=0.452..2.965 rows=42 loops=1)
+                           Join Filter: ("*SELECT* 1".materia_id = m.id)
+                           Rows Removed by Join Filter: 105
+                           Buffers: shared hit=627
+                           ->  Append  (cost=5.95..1310.56 rows=67 width=76) (actual time=0.403..2.884 rows=42 loops=1)
+                                 Buffers: shared hit=619
+                                 ->  Subquery Scan on "*SELECT* 1"  (cost=5.95..228.03 rows=11 width=76) (actual time=0.402..0.682 rows=42 loops=1)
+                                       Buffers: shared hit=109
+                                       ->  Nested Loop  (cost=5.95..227.92 rows=11 width=76) (actual time=0.401..0.675 rows=42 loops=1)
+                                             Join Filter: (((date_trunc('week'::text, (a.vence_en AT TIME ZONE u.zona_horaria)))::date >= ((date_trunc('week'::text, (now() AT TIME ZONE $0)))::date - 28)) AND ((date_trunc('week'::text, (a.vence_en AT TIME ZONE u.zona_horaria)))::date <= ((date_trunc('week'::text, (now() AT TIME ZONE $1)))::date + 28)))
+                                             Rows Removed by Join Filter: 58
+                                             Buffers: shared hit=109
+                                             ->  Index Scan using usuario_pkey on usuario u  (cost=0.39..8.41 rows=1 width=36) (actual time=0.041..0.042 rows=1 loops=1)
+                                                   Index Cond: (id = app_usuario_id())
+                                                   Buffers: shared hit=2
+                                             ->  Bitmap Heap Scan on actividad a  (cost=5.56..213.90 rows=100 width=50) (actual time=0.037..0.356 rows=100 loops=1)
+                                                   Recheck Cond: ((usuario_id = app_usuario_id()) AND (vence_en IS NOT NULL))
+                                                   Heap Blocks: exact=100
+                                                   Buffers: shared hit=103
+                                                   ->  Bitmap Index Scan on actividad_usuario_vence_idx  (cost=0.00..5.54 rows=100 width=0) (actual time=0.022..0.022 rows=100 loops=1)
+                                                         Index Cond: ((usuario_id = app_usuario_id()) AND (vence_en IS NOT NULL))
+                                                         Buffers: shared hit=3
+                                 ->  Subquery Scan on "*SELECT* 2"  (cost=29.25..1082.19 rows=56 width=76) (actual time=2.191..2.193 rows=0 loops=1)
+                                       Buffers: shared hit=510
+                                       ->  Nested Loop  (cost=29.25..1081.63 rows=56 width=76) (actual time=2.190..2.192 rows=0 loops=1)
+                                             Buffers: shared hit=510
+                                             ->  Nested Loop  (cost=28.96..915.31 rows=56 width=68) (actual time=0.265..2.153 rows=89 loops=1)
+                                                   Join Filter: (((date_trunc('week'::text, (r.inicio AT TIME ZONE u_1.zona_horaria)))::date >= ((date_trunc('week'::text, (now() AT TIME ZONE $0)))::date - 28)) AND ((date_trunc('week'::text, (r.inicio AT TIME ZONE u_1.zona_horaria)))::date <= ((date_trunc('week'::text, (now() AT TIME ZONE $1)))::date + 28)))
+                                                   Rows Removed by Join Filter: 411
+                                                   Buffers: shared hit=510
+                                                   ->  Index Scan using usuario_pkey on usuario u_1  (cost=0.39..8.41 rows=1 width=36) (actual time=0.033..0.037 rows=1 loops=1)
+                                                         Index Cond: (id = app_usuario_id())
+                                                         Buffers: shared hit=2
+                                                   ->  Bitmap Heap Scan on registro_tiempo r  (cost=28.56..879.23 rows=503 width=48) (actual time=0.202..1.575 rows=500 loops=1)
+                                                         Recheck Cond: (usuario_id = app_usuario_id())
+                                                         Heap Blocks: exact=500
+                                                         Buffers: shared hit=508
+                                                         ->  Bitmap Index Scan on registro_usuario_categoria_inicio_idx  (cost=0.00..28.44 rows=503 width=0) (actual time=0.142..0.143 rows=500 loops=1)
+                                                               Index Cond: (usuario_id = app_usuario_id())
+                                                               Buffers: shared hit=8
+                                             ->  Memoize  (cost=0.30..2.94 rows=1 width=32) (actual time=0.000..0.000 rows=0 loops=89)
+                                                   Cache Key: r.actividad_id
+                                                   Cache Mode: logical
+                                                   Hits: 88  Misses: 1  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+                                                   ->  Index Scan using actividad_pkey on actividad a_1  (cost=0.29..2.93 rows=1 width=32) (actual time=0.001..0.002 rows=0 loops=1)
+                                                         Index Cond: (id = r.actividad_id)
+                                                         Filter: (usuario_id = app_usuario_id())
+                           ->  Materialize  (cost=4.57..13.50 rows=6 width=26) (actual time=0.001..0.001 rows=4 loops=42)
+                                 Buffers: shared hit=8
+                                 ->  Bitmap Heap Scan on materia m  (cost=4.57..13.47 rows=6 width=26) (actual time=0.036..0.044 rows=6 loops=1)
+                                       Recheck Cond: (usuario_id = app_usuario_id())
+                                       Heap Blocks: exact=6
+                                       Buffers: shared hit=8
+                                       ->  Bitmap Index Scan on materia_nombre_unico  (cost=0.00..4.57 rows=6 width=0) (actual time=0.032..0.033 rows=6 loops=1)
+                                             Index Cond: (usuario_id = app_usuario_id())
+                                             Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=146
+ Planning Time: 1.137 ms
+ Execution Time: 3.261 ms
+(81 rows)
+
+=== 3. Registros por categoria (GET /registros-tiempo?categoria_id=...&desde=-30d, 50 filas)
+                                                                                                  QUERY PLAN                                                                                                   
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=59.19..59.22 rows=14 width=106) (actual time=0.065..0.068 rows=14 loops=1)
+   Buffers: shared hit=17
+   ->  Sort  (cost=59.19..59.22 rows=14 width=106) (actual time=0.064..0.066 rows=14 loops=1)
+         Sort Key: inicio DESC, id
+         Sort Method: quicksort  Memory: 26kB
+         Buffers: shared hit=17
+         ->  Bitmap Heap Scan on registro_tiempo  (cost=4.84..58.92 rows=14 width=106) (actual time=0.038..0.057 rows=14 loops=1)
+               Recheck Cond: ((usuario_id = app_usuario_id()) AND (categoria_id = '<id>'::uuid) AND (inicio >= '2026-10-28 02:26:09.422608-06'::timestamp with time zone))
+               Heap Blocks: exact=14
+               Buffers: shared hit=17
+               ->  Bitmap Index Scan on registro_usuario_categoria_inicio_idx  (cost=0.00..4.84 rows=14 width=0) (actual time=0.032..0.032 rows=14 loops=1)
+                     Index Cond: ((usuario_id = app_usuario_id()) AND (categoria_id = '<id>'::uuid) AND (inicio >= '2026-10-28 02:26:09.422608-06'::timestamp with time zone))
+                     Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.171 ms
+ Execution Time: 0.084 ms
+(17 rows)
+
+=== 4. Progreso de metas (GET /reportes/metas)
+                                                                                                                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=48.32..48.32 rows=3 width=115) (actual time=0.276..0.279 rows=3 loops=1)
+   Sort Key: v_progreso_metas.categoria, v_progreso_metas.periodo, v_progreso_metas.meta_id
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=20
+   ->  Subquery Scan on v_progreso_metas  (cost=17.18..48.29 rows=3 width=115) (actual time=0.213..0.264 rows=3 loops=1)
+         Buffers: shared hit=20
+         ->  Nested Loop Left Join  (cost=17.18..48.26 rows=3 width=131) (actual time=0.204..0.255 rows=3 loops=1)
+               Buffers: shared hit=20
+               ->  Hash Join  (cost=8.69..22.56 rows=3 width=102) (actual time=0.145..0.153 rows=3 loops=1)
+                     Hash Cond: (m.categoria_id = c.id)
+                     Buffers: shared hit=8
+                     ->  Nested Loop  (cost=4.94..18.80 rows=3 width=94) (actual time=0.123..0.128 rows=3 loops=1)
+                           Buffers: shared hit=7
+                           ->  Index Scan using usuario_pkey on usuario u  (cost=0.39..8.41 rows=1 width=36) (actual time=0.076..0.076 rows=1 loops=1)
+                                 Index Cond: (id = app_usuario_id())
+                                 Buffers: shared hit=2
+                           ->  Bitmap Heap Scan on meta m  (cost=4.55..10.36 rows=3 width=74) (actual time=0.024..0.028 rows=3 loops=1)
+                                 Recheck Cond: ((usuario_id = app_usuario_id()) AND activa)
+                                 Heap Blocks: exact=3
+                                 Buffers: shared hit=5
+                                 ->  Bitmap Index Scan on meta_activa_unica  (cost=0.00..4.54 rows=3 width=0) (actual time=0.018..0.019 rows=3 loops=1)
+                                       Index Cond: (usuario_id = app_usuario_id())
+                                       Buffers: shared hit=2
+                     ->  Hash  (cost=3.62..3.62 rows=10 width=24) (actual time=0.012..0.012 rows=10 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=1
+                           ->  Seq Scan on categoria_actividad c  (cost=0.00..3.62 rows=10 width=24) (actual time=0.006..0.008 rows=10 loops=1)
+                                 Filter: ((usuario_id IS NULL) OR (usuario_id = app_usuario_id()))
+                                 Buffers: shared hit=1
+               ->  Aggregate  (cost=8.49..8.51 rows=1 width=40) (actual time=0.026..0.026 rows=1 loops=3)
+                     Buffers: shared hit=12
+                     ->  Result  (cost=0.45..8.48 rows=1 width=16) (actual time=0.020..0.021 rows=1 loops=3)
+                           One-Time Filter: (app_usuario_id() = m.usuario_id)
+                           Buffers: shared hit=12
+                           ->  Index Scan using registro_usuario_categoria_inicio_idx on registro_tiempo r  (cost=0.45..8.48 rows=1 width=16) (actual time=0.006..0.007 rows=1 loops=3)
+                                 Index Cond: ((usuario_id = m.usuario_id) AND (categoria_id = m.categoria_id) AND (inicio >= (date_trunc(CASE m.periodo WHEN 'dia'::text THEN 'day'::text WHEN 'semana'::text THEN 'week'::text ELSE 'month'::text END, (now() AT TIME ZONE u.zona_horaria)) AT TIME ZONE u.zona_horaria)) AND (inicio < ((date_trunc(CASE m.periodo WHEN 'dia'::text THEN 'day'::text WHEN 'semana'::text THEN 'week'::text ELSE 'month'::text END, (now() AT TIME ZONE u.zona_horaria)) + CASE m.periodo WHEN 'dia'::text THEN '1 day'::interval WHEN 'semana'::text THEN '7 days'::interval ELSE '1 mon'::interval END) AT TIME ZONE u.zona_horaria)))
+                                 Buffers: shared hit=12
+ Planning:
+   Buffers: shared hit=126
+ Planning Time: 0.799 ms
+ Execution Time: 0.479 ms
+(41 rows)
+
+=== 5. Recordatorios vencidos (despacho, lote de 20, como kairo_worker)
+                                                                                             QUERY PLAN                                                                                             
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=40.56..77.22 rows=20 width=163) (actual time=0.743..0.761 rows=20 loops=1)
+   Buffers: shared hit=323
+   ->  LockRows  (cost=40.56..5628.97 rows=3049 width=163) (actual time=0.741..0.758 rows=20 loops=1)
+         Buffers: shared hit=323
+         ->  Incremental Sort  (cost=40.56..5598.48 rows=3049 width=163) (actual time=0.656..0.659 rows=20 loops=1)
+               Sort Key: r.momento, r.id
+               Presorted Key: r.momento
+               Full-sort Groups: 1  Sort Method: quicksort  Average Memory: 32kB  Peak Memory: 32kB
+               Buffers: shared hit=283
+               ->  Nested Loop Left Join  (cost=1.43..5490.08 rows=3049 width=163) (actual time=0.091..0.594 rows=60 loops=1)
+                     Buffers: shared hit=280
+                     ->  Nested Loop Left Join  (cost=1.29..5416.85 rows=3049 width=170) (actual time=0.076..0.551 rows=60 loops=1)
+                           Buffers: shared hit=280
+                           ->  Nested Loop Left Join  (cost=1.02..4496.61 rows=3049 width=164) (actual time=0.071..0.522 rows=60 loops=1)
+                                 Buffers: shared hit=280
+                                 ->  Nested Loop Left Join  (cost=0.74..3341.43 rows=3049 width=141) (actual time=0.065..0.482 rows=60 loops=1)
+                                       Buffers: shared hit=280
+                                       ->  Nested Loop  (cost=0.44..1308.02 rows=3049 width=115) (actual time=0.043..0.173 rows=60 loops=1)
+                                             Buffers: shared hit=100
+                                             ->  Index Scan using recordatorio_pendientes_idx on recordatorio r  (cost=0.29..1215.58 rows=3049 width=96) (actual time=0.032..0.063 rows=60 loops=1)
+                                                   Index Cond: (momento <= now())
+                                                   Filter: ((intentos < 3) AND (estado_envio = 'pendiente'::text))
+                                                   Buffers: shared hit=4
+                                             ->  Memoize  (cost=0.15..0.18 rows=1 width=51) (actual time=0.001..0.001 rows=1 loops=60)
+                                                   Cache Key: r.usuario_id
+                                                   Cache Mode: logical
+                                                   Hits: 12  Misses: 48  Evictions: 0  Overflows: 0  Memory Usage: 8kB
+                                                   Buffers: shared hit=96
+                                                   ->  Index Scan using usuario_pkey on usuario u  (cost=0.14..0.17 rows=1 width=51) (actual time=0.001..0.001 rows=1 loops=48)
+                                                         Index Cond: (id = r.usuario_id)
+                                                         Buffers: shared hit=96
+                                       ->  Memoize  (cost=0.30..0.70 rows=1 width=42) (actual time=0.005..0.005 rows=1 loops=60)
+                                             Cache Key: r.actividad_id
+                                             Cache Mode: logical
+                                             Hits: 0  Misses: 60  Evictions: 0  Overflows: 0  Memory Usage: 10kB
+                                             Buffers: shared hit=180
+                                             ->  Index Scan using actividad_pkey on actividad a  (cost=0.29..0.69 rows=1 width=42) (actual time=0.004..0.004 rows=1 loops=60)
+                                                   Index Cond: (id = r.actividad_id)
+                                                   Buffers: shared hit=180
+                                 ->  Index Scan using evento_calendario_pkey on evento_calendario e  (cost=0.28..0.38 rows=1 width=39) (actual time=0.000..0.000 rows=0 loops=60)
+                                       Index Cond: (id = r.evento_id)
+                           ->  Index Scan using meta_pkey on meta m  (cost=0.27..0.30 rows=1 width=38) (actual time=0.000..0.000 rows=0 loops=60)
+                                 Index Cond: (id = r.meta_id)
+                     ->  Memoize  (cost=0.15..0.20 rows=1 width=30) (actual time=0.000..0.000 rows=0 loops=60)
+                           Cache Key: m.categoria_id
+                           Cache Mode: logical
+                           Hits: 59  Misses: 1  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+                           ->  Index Scan using categoria_actividad_pkey on categoria_actividad c  (cost=0.14..0.19 rows=1 width=30) (actual time=0.013..0.013 rows=0 loops=1)
+                                 Index Cond: (id = m.categoria_id)
+ Planning:
+   Buffers: shared hit=99
+ Planning Time: 2.477 ms
+ Execution Time: 0.951 ms
+(53 rows)
+
+############ SIN INDICES
+=== 1. Agenda proxima (GET /reportes/agenda, 14 dias, 50 filas)
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=859.80..859.85 rows=18 width=145) (actual time=1.106..1.112 rows=14 loops=1)
+   Buffers: shared hit=262
+   ->  Sort  (cost=859.80..859.85 rows=18 width=145) (actual time=1.105..1.110 rows=14 loops=1)
+         Sort Key: "*SELECT* 1".cuando, "*SELECT* 1".tipo, "*SELECT* 1".id
+         Sort Method: quicksort  Memory: 26kB
+         Buffers: shared hit=262
+         ->  Append  (cost=443.86..859.43 rows=18 width=145) (actual time=0.714..1.094 rows=14 loops=1)
+               Buffers: shared hit=262
+               ->  Subquery Scan on "*SELECT* 1"  (cost=443.86..663.26 rows=6 width=116) (actual time=0.713..0.800 rows=6 loops=1)
+                     Buffers: shared hit=198
+                     ->  Nested Loop Left Join  (cost=443.86..663.20 rows=6 width=164) (actual time=0.712..0.797 rows=6 loops=1)
+                           Join Filter: (a.materia_id = m.id)
+                           Rows Removed by Join Filter: 15
+                           Buffers: shared hit=198
+                           ->  Hash Join  (cost=439.29..649.16 rows=6 width=72) (actual time=0.652..0.725 rows=6 loops=1)
+                                 Hash Cond: (a.categoria_id = c.id)
+                                 Buffers: shared hit=190
+                                 ->  Bitmap Heap Scan on actividad a  (cost=435.54..645.38 rows=6 width=80) (actual time=0.632..0.701 rows=6 loops=1)
+                                       Recheck Cond: (usuario_id = app_usuario_id())
+                                       Filter: ((estado = ANY ('{pendiente,en_progreso}'::text[])) AND (vence_en >= now()) AND (vence_en <= (now() + '14 days'::interval)))
+                                       Rows Removed by Filter: 94
+                                       Heap Blocks: exact=100
+                                       Buffers: shared hit=189
+                                       ->  Bitmap Index Scan on actividad_id_usuario_unico  (cost=0.00..435.54 rows=100 width=0) (actual time=0.519..0.519 rows=100 loops=1)
+                                             Index Cond: (usuario_id = app_usuario_id())
+                                             Buffers: shared hit=89
+                                 ->  Hash  (cost=3.62..3.62 rows=10 width=24) (actual time=0.012..0.013 rows=10 loops=1)
+                                       Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                       Buffers: shared hit=1
+                                       ->  Seq Scan on categoria_actividad c  (cost=0.00..3.62 rows=10 width=24) (actual time=0.005..0.007 rows=10 loops=1)
+                                             Filter: ((usuario_id IS NULL) OR (usuario_id = app_usuario_id()))
+                                             Buffers: shared hit=1
+                           ->  Materialize  (cost=4.57..13.50 rows=6 width=26) (actual time=0.009..0.011 rows=4 loops=6)
+                                 Buffers: shared hit=8
+                                 ->  Bitmap Heap Scan on materia m  (cost=4.57..13.47 rows=6 width=26) (actual time=0.051..0.059 rows=6 loops=1)
+                                       Recheck Cond: (usuario_id = app_usuario_id())
+                                       Heap Blocks: exact=6
+                                       Buffers: shared hit=8
+                                       ->  Bitmap Index Scan on materia_nombre_unico  (cost=0.00..4.57 rows=6 width=0) (actual time=0.047..0.047 rows=6 loops=1)
+                                             Index Cond: (usuario_id = app_usuario_id())
+                                             Buffers: shared hit=2
+               ->  Subquery Scan on "*SELECT* 2"  (cost=135.60..196.08 rows=12 width=159) (actual time=0.248..0.291 rows=8 loops=1)
+                     Buffers: shared hit=64
+                     ->  Nested Loop Left Join  (cost=135.60..195.96 rows=12 width=207) (actual time=0.247..0.288 rows=8 loops=1)
+                           Join Filter: (e.materia_id = m_1.id)
+                           Rows Removed by Join Filter: 48
+                           Buffers: shared hit=64
+                           ->  Bitmap Heap Scan on evento_calendario e  (cost=131.03..181.40 rows=12 width=49) (actual time=0.208..0.239 rows=8 loops=1)
+                                 Recheck Cond: (usuario_id = app_usuario_id())
+                                 Filter: ((fin >= now()) AND (inicio <= (now() + '14 days'::interval)))
+                                 Rows Removed by Filter: 22
+                                 Heap Blocks: exact=30
+                                 Buffers: shared hit=56
+                                 ->  Bitmap Index Scan on evento_id_usuario_unico  (cost=0.00..131.03 rows=30 width=0) (actual time=0.182..0.182 rows=30 loops=1)
+                                       Index Cond: (usuario_id = app_usuario_id())
+                                       Buffers: shared hit=26
+                           ->  Materialize  (cost=4.57..13.50 rows=6 width=26) (actual time=0.004..0.005 rows=6 loops=8)
+                                 Buffers: shared hit=8
+                                 ->  Bitmap Heap Scan on materia m_1  (cost=4.57..13.47 rows=6 width=26) (actual time=0.029..0.033 rows=6 loops=1)
+                                       Recheck Cond: (usuario_id = app_usuario_id())
+                                       Heap Blocks: exact=6
+                                       Buffers: shared hit=8
+                                       ->  Bitmap Index Scan on materia_nombre_unico  (cost=0.00..4.57 rows=6 width=0) (actual time=0.027..0.027 rows=6 loops=1)
+                                             Index Cond: (usuario_id = app_usuario_id())
+                                             Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=35
+ Planning Time: 0.749 ms
+ Execution Time: 1.183 ms
+(69 rows)
+
+=== 2. Carga semanal por materia (GET /reportes/carga-semanal, 4 semanas atras y 4 adelante)
+                                                                                                                                                                               QUERY PLAN                                                                                                                                                                               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=3795.70..3795.87 rows=67 width=70) (actual time=3.835..3.845 rows=42 loops=1)
+   Sort Key: v_carga_semanal_materia.semana_desde, v_carga_semanal_materia.materia, v_carga_semanal_materia.materia_id
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=1118
+   InitPlan 1 (returns $0)
+     ->  Index Scan using usuario_pkey on usuario  (cost=0.39..8.41 rows=1 width=20) (actual time=0.041..0.043 rows=1 loops=1)
+           Index Cond: (id = app_usuario_id())
+           Buffers: shared hit=2
+   InitPlan 2 (returns $1)
+     ->  Index Scan using usuario_pkey on usuario usuario_1  (cost=0.39..8.41 rows=1 width=20) (actual time=0.034..0.034 rows=1 loops=1)
+           Index Cond: (id = app_usuario_id())
+           Buffers: shared hit=2
+   ->  Subquery Scan on v_carga_semanal_materia  (cost=3773.34..3776.85 rows=67 width=70) (actual time=3.763..3.816 rows=42 loops=1)
+         Buffers: shared hit=1118
+         ->  GroupAggregate  (cost=3773.34..3776.18 rows=67 width=86) (actual time=3.761..3.807 rows=42 loops=1)
+               Group Key: "*SELECT* 1".usuario_id, "*SELECT* 1".semana_desde, "*SELECT* 1".materia_id, m.nombre
+               Buffers: shared hit=1118
+               ->  Sort  (cost=3773.34..3773.50 rows=67 width=86) (actual time=3.747..3.756 rows=42 loops=1)
+                     Sort Key: "*SELECT* 1".usuario_id, "*SELECT* 1".semana_desde, "*SELECT* 1".materia_id, m.nombre
+                     Sort Method: quicksort  Memory: 28kB
+                     Buffers: shared hit=1118
+                     ->  Nested Loop Left Join  (cost=440.52..3771.30 rows=67 width=86) (actual time=0.643..3.707 rows=42 loops=1)
+                           Join Filter: ("*SELECT* 1".materia_id = m.id)
+                           Rows Removed by Join Filter: 105
+                           Buffers: shared hit=1118
+                           ->  Append  (cost=435.95..3751.79 rows=67 width=76) (actual time=0.603..3.632 rows=42 loops=1)
+                                 Buffers: shared hit=1110
+                                 ->  Subquery Scan on "*SELECT* 1"  (cost=435.95..658.03 rows=11 width=76) (actual time=0.603..0.798 rows=42 loops=1)
+                                       Buffers: shared hit=195
+                                       ->  Nested Loop  (cost=435.95..657.92 rows=11 width=76) (actual time=0.602..0.790 rows=42 loops=1)
+                                             Join Filter: (((date_trunc('week'::text, (a.vence_en AT TIME ZONE u.zona_horaria)))::date >= ((date_trunc('week'::text, (now() AT TIME ZONE $0)))::date - 28)) AND ((date_trunc('week'::text, (a.vence_en AT TIME ZONE u.zona_horaria)))::date <= ((date_trunc('week'::text, (now() AT TIME ZONE $1)))::date + 28)))
+                                             Rows Removed by Join Filter: 58
+                                             Buffers: shared hit=195
+                                             ->  Index Scan using usuario_pkey on usuario u  (cost=0.39..8.41 rows=1 width=36) (actual time=0.027..0.027 rows=1 loops=1)
+                                                   Index Cond: (id = app_usuario_id())
+                                                   Buffers: shared hit=2
+                                             ->  Bitmap Heap Scan on actividad a  (cost=435.56..643.90 rows=100 width=50) (actual time=0.337..0.463 rows=100 loops=1)
+                                                   Recheck Cond: (usuario_id = app_usuario_id())
+                                                   Filter: (vence_en IS NOT NULL)
+                                                   Heap Blocks: exact=100
+                                                   Buffers: shared hit=189
+                                                   ->  Bitmap Index Scan on actividad_id_usuario_unico  (cost=0.00..435.54 rows=100 width=0) (actual time=0.320..0.320 rows=100 loops=1)
+                                                         Index Cond: (usuario_id = app_usuario_id())
+                                                         Buffers: shared hit=89
+                                 ->  Subquery Scan on "*SELECT* 2"  (cost=2040.48..3093.42 rows=56 width=76) (actual time=2.823..2.824 rows=0 loops=1)
+                                       Buffers: shared hit=915
+                                       ->  Nested Loop  (cost=2040.48..3092.86 rows=56 width=76) (actual time=2.821..2.823 rows=0 loops=1)
+                                             Buffers: shared hit=915
+                                             ->  Nested Loop  (cost=2040.18..2926.53 rows=56 width=68) (actual time=1.782..2.789 rows=89 loops=1)
+                                                   Join Filter: (((date_trunc('week'::text, (r.inicio AT TIME ZONE u_1.zona_horaria)))::date >= ((date_trunc('week'::text, (now() AT TIME ZONE $0)))::date - 28)) AND ((date_trunc('week'::text, (r.inicio AT TIME ZONE u_1.zona_horaria)))::date <= ((date_trunc('week'::text, (now() AT TIME ZONE $1)))::date + 28)))
+                                                   Rows Removed by Join Filter: 411
+                                                   Buffers: shared hit=915
+                                                   ->  Index Scan using usuario_pkey on usuario u_1  (cost=0.39..8.41 rows=1 width=36) (actual time=0.025..0.027 rows=1 loops=1)
+                                                         Index Cond: (id = app_usuario_id())
+                                                         Buffers: shared hit=2
+                                                   ->  Bitmap Heap Scan on registro_tiempo r  (cost=2039.79..2890.46 rows=503 width=48) (actual time=1.725..2.257 rows=500 loops=1)
+                                                         Recheck Cond: (usuario_id = app_usuario_id())
+                                                         Heap Blocks: exact=500
+                                                         Buffers: shared hit=913
+                                                         ->  Bitmap Index Scan on registro_id_usuario_unico  (cost=0.00..2039.66 rows=503 width=0) (actual time=1.669..1.669 rows=500 loops=1)
+                                                               Index Cond: (usuario_id = app_usuario_id())
+                                                               Buffers: shared hit=413
+                                             ->  Memoize  (cost=0.30..2.94 rows=1 width=32) (actual time=0.000..0.000 rows=0 loops=89)
+                                                   Cache Key: r.actividad_id
+                                                   Cache Mode: logical
+                                                   Hits: 88  Misses: 1  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+                                                   ->  Index Scan using actividad_pkey on actividad a_1  (cost=0.29..2.93 rows=1 width=32) (actual time=0.003..0.003 rows=0 loops=1)
+                                                         Index Cond: (id = r.actividad_id)
+                                                         Filter: (usuario_id = app_usuario_id())
+                           ->  Materialize  (cost=4.57..13.50 rows=6 width=26) (actual time=0.001..0.001 rows=4 loops=42)
+                                 Buffers: shared hit=8
+                                 ->  Bitmap Heap Scan on materia m  (cost=4.57..13.47 rows=6 width=26) (actual time=0.030..0.037 rows=6 loops=1)
+                                       Recheck Cond: (usuario_id = app_usuario_id())
+                                       Heap Blocks: exact=6
+                                       Buffers: shared hit=8
+                                       ->  Bitmap Index Scan on materia_nombre_unico  (cost=0.00..4.57 rows=6 width=0) (actual time=0.026..0.026 rows=6 loops=1)
+                                             Index Cond: (usuario_id = app_usuario_id())
+                                             Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=7
+ Planning Time: 0.797 ms
+ Execution Time: 3.981 ms
+(82 rows)
+
+=== 3. Registros por categoria (GET /registros-tiempo?categoria_id=...&desde=-30d, 50 filas)
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=2893.12..2893.15 rows=14 width=106) (actual time=2.246..2.250 rows=14 loops=1)
+   Buffers: shared hit=913
+   ->  Sort  (cost=2893.12..2893.15 rows=14 width=106) (actual time=2.245..2.247 rows=14 loops=1)
+         Sort Key: inicio DESC, id
+         Sort Method: quicksort  Memory: 26kB
+         Buffers: shared hit=913
+         ->  Bitmap Heap Scan on registro_tiempo  (cost=2039.67..2892.85 rows=14 width=106) (actual time=1.678..2.234 rows=14 loops=1)
+               Recheck Cond: (usuario_id = app_usuario_id())
+               Filter: ((inicio >= '2026-10-28 02:26:09.422608-06'::timestamp with time zone) AND (categoria_id = '<id>'::uuid))
+               Rows Removed by Filter: 486
+               Heap Blocks: exact=500
+               Buffers: shared hit=913
+               ->  Bitmap Index Scan on registro_id_usuario_unico  (cost=0.00..2039.66 rows=503 width=0) (actual time=1.619..1.619 rows=500 loops=1)
+                     Index Cond: (usuario_id = app_usuario_id())
+                     Buffers: shared hit=413
+ Planning Time: 0.131 ms
+ Execution Time: 2.271 ms
+(17 rows)
+
+=== 4. Progreso de metas (GET /reportes/metas)
+                                                                                                                                                                                                                                                                                                              QUERY PLAN                                                                                                                                                                                                                                                                                                              
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=8378.98..8378.99 rows=3 width=115) (actual time=5.308..5.313 rows=3 loops=1)
+   Sort Key: v_progreso_metas.categoria, v_progreso_metas.periodo, v_progreso_metas.meta_id
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=2747
+   ->  Subquery Scan on v_progreso_metas  (cost=2794.07..8378.96 rows=3 width=115) (actual time=1.984..5.296 rows=3 loops=1)
+         Buffers: shared hit=2747
+         ->  Nested Loop Left Join  (cost=2794.07..8378.93 rows=3 width=131) (actual time=1.983..5.292 rows=3 loops=1)
+               Buffers: shared hit=2747
+               ->  Hash Join  (cost=8.69..22.56 rows=3 width=102) (actual time=0.086..0.105 rows=3 loops=1)
+                     Hash Cond: (m.categoria_id = c.id)
+                     Buffers: shared hit=8
+                     ->  Nested Loop  (cost=4.94..18.80 rows=3 width=94) (actual time=0.067..0.079 rows=3 loops=1)
+                           Buffers: shared hit=7
+                           ->  Index Scan using usuario_pkey on usuario u  (cost=0.39..8.41 rows=1 width=36) (actual time=0.035..0.038 rows=1 loops=1)
+                                 Index Cond: (id = app_usuario_id())
+                                 Buffers: shared hit=2
+                           ->  Bitmap Heap Scan on meta m  (cost=4.55..10.36 rows=3 width=74) (actual time=0.012..0.019 rows=3 loops=1)
+                                 Recheck Cond: ((usuario_id = app_usuario_id()) AND activa)
+                                 Heap Blocks: exact=3
+                                 Buffers: shared hit=5
+                                 ->  Bitmap Index Scan on meta_activa_unica  (cost=0.00..4.54 rows=3 width=0) (actual time=0.009..0.009 rows=3 loops=1)
+                                       Index Cond: (usuario_id = app_usuario_id())
+                                       Buffers: shared hit=2
+                     ->  Hash  (cost=3.62..3.62 rows=10 width=24) (actual time=0.013..0.013 rows=10 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=1
+                           ->  Seq Scan on categoria_actividad c  (cost=0.00..3.62 rows=10 width=24) (actual time=0.005..0.008 rows=10 loops=1)
+                                 Filter: ((usuario_id IS NULL) OR (usuario_id = app_usuario_id()))
+                                 Buffers: shared hit=1
+               ->  Aggregate  (cost=2785.38..2785.39 rows=1 width=40) (actual time=1.721..1.721 rows=1 loops=3)
+                     Buffers: shared hit=2739
+                     ->  Result  (cost=2039.67..2785.37 rows=1 width=16) (actual time=1.335..1.712 rows=1 loops=3)
+                           One-Time Filter: (app_usuario_id() = m.usuario_id)
+                           Buffers: shared hit=2739
+                           ->  Bitmap Heap Scan on registro_tiempo r  (cost=2039.67..2785.37 rows=1 width=16) (actual time=1.292..1.668 rows=1 loops=3)
+                                 Recheck Cond: (usuario_id = m.usuario_id)
+                                 Filter: ((categoria_id = m.categoria_id) AND (inicio >= (date_trunc(CASE m.periodo WHEN 'dia'::text THEN 'day'::text WHEN 'semana'::text THEN 'week'::text ELSE 'month'::text END, (now() AT TIME ZONE u.zona_horaria)) AT TIME ZONE u.zona_horaria)) AND (inicio < ((date_trunc(CASE m.periodo WHEN 'dia'::text THEN 'day'::text WHEN 'semana'::text THEN 'week'::text ELSE 'month'::text END, (now() AT TIME ZONE u.zona_horaria)) + CASE m.periodo WHEN 'dia'::text THEN '1 day'::interval WHEN 'semana'::text THEN '7 days'::interval ELSE '1 mon'::interval END) AT TIME ZONE u.zona_horaria)))
+                                 Rows Removed by Filter: 499
+                                 Heap Blocks: exact=1500
+                                 Buffers: shared hit=2739
+                                 ->  Bitmap Index Scan on registro_id_usuario_unico  (cost=0.00..2039.41 rows=500 width=0) (actual time=1.108..1.108 rows=500 loops=3)
+                                       Index Cond: (usuario_id = m.usuario_id)
+                                       Buffers: shared hit=1239
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.630 ms
+ Execution Time: 5.397 ms
+(47 rows)
+
+=== 5. Recordatorios vencidos (despacho, lote de 20, como kairo_worker)
+                                                                             QUERY PLAN                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1482.20..1482.45 rows=20 width=163) (actual time=7.056..7.085 rows=20 loops=1)
+   Buffers: shared hit=710
+   ->  LockRows  (cost=1482.20..1520.31 rows=3049 width=163) (actual time=7.054..7.081 rows=20 loops=1)
+         Buffers: shared hit=710
+         ->  Sort  (cost=1482.20..1489.82 rows=3049 width=163) (actual time=7.021..7.029 rows=20 loops=1)
+               Sort Key: r.momento, r.id
+               Sort Method: quicksort  Memory: 32kB
+               Buffers: shared hit=670
+               ->  Hash Left Join  (cost=955.84..1401.07 rows=3049 width=163) (actual time=4.081..6.964 rows=60 loops=1)
+                     Hash Cond: (m.categoria_id = c.id)
+                     Buffers: shared hit=670
+                     ->  Hash Left Join  (cost=954.61..1388.45 rows=3049 width=170) (actual time=4.062..6.927 rows=60 loops=1)
+                           Hash Cond: (r.meta_id = m.id)
+                           Buffers: shared hit=669
+                           ->  Hash Left Join  (cost=942.86..1368.69 rows=3049 width=164) (actual time=3.945..6.793 rows=60 loops=1)
+                                 Hash Cond: (r.evento_id = e.id)
+                                 Buffers: shared hit=664
+                                 ->  Hash Join  (cost=831.36..1249.19 rows=3049 width=141) (actual time=2.840..5.671 rows=60 loops=1)
+                                       Hash Cond: (r.usuario_id = u.id)
+                                       Buffers: shared hit=620
+                                       ->  Hash Right Join  (cost=827.11..1236.60 rows=3049 width=122) (actual time=2.778..5.574 rows=60 loops=1)
+                                             Hash Cond: (a.id = r.actividad_id)
+                                             Buffers: shared hit=618
+                                             ->  Seq Scan on actividad a  (cost=0.00..329.00 rows=10000 width=42) (actual time=0.032..1.769 rows=10000 loops=1)
+                                                   Buffers: shared hit=229
+                                             ->  Hash  (cost=789.00..789.00 rows=3049 width=96) (actual time=2.649..2.650 rows=60 loops=1)
+                                                   Buckets: 4096  Batches: 1  Memory Usage: 38kB
+                                                   Buffers: shared hit=389
+                                                   ->  Seq Scan on recordatorio r  (cost=0.00..789.00 rows=3049 width=96) (actual time=1.689..2.590 rows=60 loops=1)
+                                                         Filter: ((intentos < 3) AND (estado_envio = 'pendiente'::text) AND (momento <= now()))
+                                                         Rows Removed by Filter: 19940
+                                                         Buffers: shared hit=389
+                                       ->  Hash  (cost=3.00..3.00 rows=100 width=51) (actual time=0.056..0.057 rows=100 loops=1)
+                                             Buckets: 1024  Batches: 1  Memory Usage: 16kB
+                                             Buffers: shared hit=2
+                                             ->  Seq Scan on usuario u  (cost=0.00..3.00 rows=100 width=51) (actual time=0.012..0.037 rows=100 loops=1)
+                                                   Buffers: shared hit=2
+                                 ->  Hash  (cost=74.00..74.00 rows=3000 width=39) (actual time=1.094..1.095 rows=3000 loops=1)
+                                       Buckets: 4096  Batches: 1  Memory Usage: 261kB
+                                       Buffers: shared hit=44
+                                       ->  Seq Scan on evento_calendario e  (cost=0.00..74.00 rows=3000 width=39) (actual time=0.005..0.486 rows=3000 loops=1)
+                                             Buffers: shared hit=44
+                           ->  Hash  (cost=8.00..8.00 rows=300 width=38) (actual time=0.105..0.105 rows=300 loops=1)
+                                 Buckets: 1024  Batches: 1  Memory Usage: 29kB
+                                 Buffers: shared hit=5
+                                 ->  Seq Scan on meta m  (cost=0.00..8.00 rows=300 width=38) (actual time=0.006..0.055 rows=300 loops=1)
+                                       Buffers: shared hit=5
+                     ->  Hash  (cost=1.10..1.10 rows=10 width=30) (actual time=0.008..0.009 rows=10 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=1
+                           ->  Seq Scan on categoria_actividad c  (cost=0.00..1.10 rows=10 width=30) (actual time=0.004..0.005 rows=10 loops=1)
+                                 Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=25
+ Planning Time: 1.454 ms
+ Execution Time: 7.177 ms
+(56 rows)
+
