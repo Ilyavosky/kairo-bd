@@ -34,8 +34,14 @@ begin
         inner join pg_namespace as n on c.relnamespace = n.oid
         where n.nspname = 'public' and c.relkind = 'v'
     loop
-        assert has_table_privilege('kairo_lectura', 'public.' || v_tabla, 'select'),
-        'kairo_lectura debe leer la vista ' || v_tabla;
+        -- Desde la migracion 017: kairo_lectura lee solo las vistas agregadas (vl_*) y
+        -- kairo_app solo las vistas por usuario (v_*).
+        assert has_table_privilege('kairo_lectura', 'public.' || v_tabla, 'select')
+        = (v_tabla like 'vl\_%'),
+        'kairo_lectura lee solo las vistas agregadas: ' || v_tabla;
+        assert has_table_privilege('kairo_app', 'public.' || v_tabla, 'select')
+        = (v_tabla not like 'vl\_%'),
+        'kairo_app lee solo las vistas por usuario: ' || v_tabla;
         assert not has_table_privilege('kairo_lectura', 'public.' || v_tabla, 'insert, update, delete'),
         'kairo_lectura no debe escribir en la vista ' || v_tabla;
     end loop;
@@ -69,8 +75,13 @@ begin
         null;
     end;
     perform set_config('app.usuario_id', v_a::text, true);
-    perform 1 from v_agenda_proxima;
-    perform 1 from v_desempeno_pipeline;
+    begin
+        perform 1 from v_agenda_proxima;
+        assert false, 'kairo_lectura no lee vistas por usuario (desde la migracion 017)';
+    exception when insufficient_privilege then
+        null;
+    end;
+    perform 1 from vl_desempeno_pipeline;
     begin
         insert into materia (usuario_id, nombre, periodo) values (v_a, 'X', '2026-3');
         assert false, 'kairo_lectura no escribe';
@@ -80,7 +91,7 @@ begin
     reset role;
 
     perform set_config('app.usuario_id', '', true);
-    set local role kairo_lectura;
+    set local role kairo_app;
     select count(*) into v_n from v_desempeno_pipeline where total > 0;
     assert v_n = 0, 'sin usuario en la sesion las vistas no devuelven datos';
 end
