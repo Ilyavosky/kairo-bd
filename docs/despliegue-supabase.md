@@ -28,6 +28,8 @@ Cada migracion queda registrada con el nombre del archivo sin extension
 |---|---|
 | 2026-11-24 | `supabase/000` y migraciones 000-011 aplicadas; huellas identicas a la CI |
 | 2026-11-25 | 012 aplicada tras validar la suite de la API; huellas identicas y linter de seguridad sin hallazgos |
+| 2026-11-25 | 013, 014 y seed del calendario aplicados; huellas identicas y linter de seguridad sin hallazgos |
+| 2026-11-25 | Fuera de migraciones (para la API): `grant kairo_app, kairo_worker to postgres` con set e inherit. Se revoca `kairo_app` al pasar a `kairo_api` (decision 007) |
 
 ## Seeds
 
