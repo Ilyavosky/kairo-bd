@@ -33,6 +33,24 @@ Cada migracion queda registrada con el nombre del archivo sin extension
 | 2026-11-27 | 015 y 016 aplicadas; huellas identicas (incluidos roles y membresias) y linter de seguridad sin hallazgos |
 | 2026-11-27 | 017 aplicada; huellas identicas (incluidas opciones de vistas) y linter de seguridad sin hallazgos |
 
+## Trabajos de pg_cron
+
+1. `supabase/001_extensiones.sql`: activa `pg_cron` y `pg_net` y da a `postgres` el `SET` sobre
+   `kairo_worker` que necesitan los jobs.
+2. Crear los dos secretos en Vault, a mano y fuera del repositorio. Desde `psql` como `postgres`:
+   ```sql
+   select vault.create_secret('https://kairo-backend-production-1a994ed5.up.railway.app', 'kairo_api_url', 'URL base de la API');
+   select vault.create_secret('<INTERNO_SECRET de Railway>', 'kairo_interno_secret', 'Secreto del endpoint interno');
+   ```
+   El segundo valor es el mismo `INTERNO_SECRET` de Railway; no se escribe en ningun archivo.
+3. `cron/001_programar_tareas.sql`: esquema `kairo_cron`, la funcion que llama a la API y el job de
+   evaluacion de metas (minuto 10 de cada hora).
+4. `cron/002_programar_despacho.sql`: el job de despacho cada 5 minutos. Se aplica solo cuando la API
+   ya tiene desplegado el pool de `kairo_despachador`.
+
+Verificacion: `select * from cron.job_run_details order by start_time desc limit 10;` y, para el
+despacho, `select status_code, error_msg from net._http_response order by created desc limit 5;`.
+
 ## Seeds
 
 Despues de las migraciones, `seeds/catalog/*.sql` en orden. Son idempotentes. Los seeds no se
