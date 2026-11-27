@@ -30,8 +30,13 @@ Cada migracion queda registrada con el nombre del archivo sin extension
 | 2026-11-25 | 012 aplicada tras validar la suite de la API; huellas identicas y linter de seguridad sin hallazgos |
 | 2026-11-25 | 013, 014 y seed del calendario aplicados; huellas identicas y linter de seguridad sin hallazgos |
 | 2026-11-25 | Fuera de migraciones (para la API): `grant kairo_app, kairo_worker to postgres` con set e inherit. Se revoca `kairo_app` al pasar a `kairo_api` (decision 007) |
+| 2026-11-27 | 015 y 016 aplicadas; huellas identicas (incluidos roles y membresias) y linter de seguridad sin hallazgos |
+| 2026-11-27 | 017 aplicada; huellas identicas (incluidas opciones de vistas) y linter de seguridad sin hallazgos |
 
 ## Seeds
 
 Despues de las migraciones, `seeds/catalog/*.sql` en orden. Son idempotentes. Los seeds no se
 registran en el historial de migraciones.
+
+Los datos de demostracion (`seeds/demo/`) se cargan aparte, el dia de la defensa o la noche
+anterior, siguiendo `docs/demo.md`.
